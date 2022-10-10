@@ -15,6 +15,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer tcpListener.Close()
 
 	server := grpc.NewServer()
 
