@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package example.files.v1;
+
+option go_package = "github.com/EmptyShadow/go-examples/grpc-upload-file/pb/files/v1;files";
+
+service FilesService {
+    rpc UploadFile(stream UploadFileRequest) returns (UploadFileResponse);
+}
+
+message UploadFileRequest {
+    oneof data {
+        UploadFileInfo file_info = 1;
+        bytes file_content_chunk = 2;
+    };
+}
+
+message UploadFileResponse {
+    FileHeader file_header = 1;
+}
+
+message UploadFileInfo {
+    string name = 1;
+}
+
+message FileHeader {
+    string name = 1;
+    string extension = 2;
+    uint64 size = 3;
+}
