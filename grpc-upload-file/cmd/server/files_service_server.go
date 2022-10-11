@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -13,11 +14,13 @@ type FilesServiceServer struct {
 	files.UnimplementedFilesServiceServer
 
 	service *FilesService
+	bufsize int
 }
 
 func NewFilesServiceServer(service *FilesService) *FilesServiceServer {
 	return &FilesServiceServer{
 		service: service,
+		bufsize: 4096,
 	}
 }
 
@@ -35,7 +38,7 @@ func (s *FilesServiceServer) UploadFile(stream files.FilesService_UploadFileServ
 		Name: msg.GetFileInfo().GetName(),
 	}
 
-	fileReader := NewFileContentReader(stream)
+	fileReader := bufio.NewReaderSize(NewFileContentReader(stream), s.bufsize)
 
 	fileHeader, err := s.service.UploadFile(stream.Context(), fileInfo, fileReader)
 	if err != nil {
