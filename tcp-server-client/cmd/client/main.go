@@ -1,27 +1,24 @@
 package main
 
 import (
+	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"log"
+	"math/rand"
 	"net"
+	"time"
 )
 
 func main() {
 	log.Println("start client")
 
 	targetAddress := flag.String("target-address", ":9999", "address of target tcp server")
+	dialTimeout := flag.Duration("dial-timeout", time.Second*30, "durection of dial timeout")
 	flag.Parse()
 
-	netAddress, err := net.ResolveTCPAddr("tcp", *targetAddress)
-	if err != nil {
-		err = fmt.Errorf("resolve tcp address by %s: %w", *targetAddress, err)
-		log.Fatalln(err)
-	}
-
-	conn, err := net.DialTCP("tcp", nil, netAddress)
+	conn, err := net.DialTimeout("tcp", *targetAddress, *dialTimeout)
 	if err != nil {
 		err = fmt.Errorf("dial tcp client connection to target tcp server: %w", err)
 		log.Fatalln(err)
@@ -30,19 +27,42 @@ func main() {
 
 	log.Println("connect from", conn.LocalAddr().String(), "to", conn.RemoteAddr().String())
 
-	buf := make([]byte, 128)
+	buf := make([]byte, 10)
 
 	for {
-		n, err := conn.Read(buf)
-		if errors.Is(err, io.EOF) {
-			log.Println("connection is closed")
+		number := rand.Int63()
+		log.Println("generate number", number)
+
+		binary.PutVarint(buf, number)
+
+		_, err = conn.Write(buf)
+		if err != nil {
+			err = fmt.Errorf("send number to server: %w", err)
+			log.Println(err)
 			break
 		}
+
+		_, err = conn.Read(buf)
 		if err != nil {
-			log.Fatalln("read data from connection: %w", err)
+			err = fmt.Errorf("get state from server: %w", err)
+			log.Println(err)
+			break
 		}
 
-		log.Println("read data", string(buf[:n]))
+		number, n := binary.Varint(buf)
+		if n < 0 {
+			err = errors.New("read large number")
+		}
+		if n == 0 {
+			err = errors.New("buf is small")
+		}
+		if err != nil {
+			log.Println(err)
+			break
+		}
+
+		log.Println("State from server:", number)
+		time.Sleep(time.Second)
 	}
 
 	log.Println("stop client")
