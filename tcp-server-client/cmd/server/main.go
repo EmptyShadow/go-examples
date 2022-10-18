@@ -2,28 +2,28 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
-	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"time"
-
-	tcp_server_client "github.com/EmptyShadow/go-examples/tcp-server-client"
 )
 
 func main() {
-	log.Println("start server")
 
 	listenAddress := flag.String("listen-address", ":9999", "address of tcp listen")
 	shutdownTimeout := flag.Duration("shutdown-timeout", time.Second*30, "timeout of shutdown program")
 	flag.Parse()
 
-	handleConn := logHandleConnection(handleConnection())
+	logger := log.New(os.Stdout, "tcp-server-example -> ", log.LstdFlags)
+	logger.Println("start server")
+
+	inmemorySetOfNumbers := NewInmemorySetOfNumbers()
+	numbersHandler := NewNumbersHandler(inmemorySetOfNumbers)
+	connectionHandler := NewConnectionHandler(numbersHandler)
+	handleConnectionLogger := NewHandleConnectionLogger(logger, connectionHandler.HandleConnection)
 
 	netAddress, err := net.ResolveTCPAddr("tcp", *listenAddress)
 	if err != nil {
@@ -37,7 +37,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	server := tcp_server_client.NewServer(netListener, handleConn)
+	server := NewServer(netListener, handleConnectionLogger.HandleConnection)
 
 	serveContext := context.Background()
 	serveContext, serveCancel := signal.NotifyContext(serveContext, os.Interrupt)
@@ -89,53 +89,5 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	log.Println("stop server")
-}
-
-func logHandleConnection(next tcp_server_client.HandleConnection) tcp_server_client.HandleConnection {
-	return func(conn net.Conn) error {
-		log.Println("connected to", conn.LocalAddr(), "from", conn.RemoteAddr())
-		err := next(conn)
-		if err != nil {
-			log.Println("ERROR", err.Error())
-		}
-		return err
-	}
-}
-
-func handleConnection() tcp_server_client.HandleConnection {
-	return func(conn net.Conn) error {
-		var sumOfSquares int64
-
-		buf := make([]byte, 10)
-
-		for {
-			_, err := conn.Read(buf)
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			if err != nil {
-				return fmt.Errorf("read bytes from conn: %w", err)
-			}
-
-			number, n := binary.Varint(buf)
-			if n < 0 {
-				return errors.New("read large number")
-			}
-			if n == 0 {
-				return errors.New("buf is small")
-			}
-
-			sumOfSquares += number * number
-			log.Println("State:", sumOfSquares, "Number:", number)
-
-			binary.PutVarint(buf, sumOfSquares)
-
-			if _, err = conn.Write(buf); err != nil {
-				return fmt.Errorf("write response: %w", err)
-			}
-		}
-
-		return nil
-	}
+	logger.Println("stop server")
 }
