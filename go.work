@@ -1,0 +1,7 @@
+go 1.18
+
+use (
+	./grpc-files
+	./json
+	./tcp-server-client
+)
