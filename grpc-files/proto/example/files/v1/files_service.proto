@@ -15,7 +15,13 @@ option go_package = "github.com/EmptyShadow/go-examples/grpc-files/pb/files/v1;f
 
 service FilesService {
     rpc UploadFile(stream UploadFileRequest) returns (UploadFileResponse);
-    rpc DownloadFile(DownloadFileRequest) returns (DownloadFileResponse);
+    rpc DownloadFile(DownloadFileRequest) returns (stream DownloadFileResponse);
+    rpc DownloadFileasdasd(DownloadFileRequest) returns (DownloadFileResponse) {
+        option (google.api.http) = {
+            post: "/v1/example/a_bit_of_everything"
+            body: "*"
+        };
+    };
 }
 
 message UploadFileRequest {

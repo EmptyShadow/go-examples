@@ -62,7 +62,7 @@ func main() {
 
 	err = stream.Send(&files.UploadFileRequest{
 		Data: &files.UploadFileRequest_FileInfo{
-			FileInfo: &files.UploadFileInfo{
+			FileInfo: &files.UploadFileRequest_Info{
 				Name: name,
 			},
 		},
