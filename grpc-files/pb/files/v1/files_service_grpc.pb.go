@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FilesServiceClient interface {
 	UploadFile(ctx context.Context, opts ...grpc.CallOption) (FilesService_UploadFileClient, error)
+	DownloadFile(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (*DownloadFileResponse, error)
 }
 
 type filesServiceClient struct {
@@ -67,11 +68,21 @@ func (x *filesServiceUploadFileClient) CloseAndRecv() (*UploadFileResponse, erro
 	return m, nil
 }
 
+func (c *filesServiceClient) DownloadFile(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (*DownloadFileResponse, error) {
+	out := new(DownloadFileResponse)
+	err := c.cc.Invoke(ctx, "/example.files.v1.FilesService/DownloadFile", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FilesServiceServer is the server API for FilesService service.
 // All implementations must embed UnimplementedFilesServiceServer
 // for forward compatibility
 type FilesServiceServer interface {
 	UploadFile(FilesService_UploadFileServer) error
+	DownloadFile(context.Context, *DownloadFileRequest) (*DownloadFileResponse, error)
 	mustEmbedUnimplementedFilesServiceServer()
 }
 
@@ -81,6 +92,9 @@ type UnimplementedFilesServiceServer struct {
 
 func (UnimplementedFilesServiceServer) UploadFile(FilesService_UploadFileServer) error {
 	return status.Errorf(codes.Unimplemented, "method UploadFile not implemented")
+}
+func (UnimplementedFilesServiceServer) DownloadFile(context.Context, *DownloadFileRequest) (*DownloadFileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DownloadFile not implemented")
 }
 func (UnimplementedFilesServiceServer) mustEmbedUnimplementedFilesServiceServer() {}
 
@@ -121,13 +135,36 @@ func (x *filesServiceUploadFileServer) Recv() (*UploadFileRequest, error) {
 	return m, nil
 }
 
+func _FilesService_DownloadFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DownloadFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FilesServiceServer).DownloadFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/example.files.v1.FilesService/DownloadFile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FilesServiceServer).DownloadFile(ctx, req.(*DownloadFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FilesService_ServiceDesc is the grpc.ServiceDesc for FilesService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var FilesService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "example.files.v1.FilesService",
 	HandlerType: (*FilesServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "DownloadFile",
+			Handler:    _FilesService_DownloadFile_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "UploadFile",

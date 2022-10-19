@@ -44,6 +44,18 @@
         }
       }
     },
+    "v1DownloadFileResponse": {
+      "type": "object",
+      "properties": {
+        "fileHeader": {
+          "$ref": "#/definitions/v1FileHeader"
+        },
+        "fileContentChunk": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
     "v1FileHeader": {
       "type": "object",
       "properties": {
@@ -59,7 +71,7 @@
         }
       }
     },
-    "v1UploadFileInfo": {
+    "v1UploadFileRequestInfo": {
       "type": "object",
       "properties": {
         "name": {
