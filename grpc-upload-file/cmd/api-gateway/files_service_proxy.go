@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/EmptyShadow/go-examples/grpc-upload-file/pb/pb/files/v1"
+	"github.com/EmptyShadow/go-examples/grpc-upload-file/pb/files/v1"
 	gwruntime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 

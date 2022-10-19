@@ -2,6 +2,15 @@ syntax = "proto3";
 
 package example.files.v1;
 
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "grpc/gateway/protoc_gen_openapiv2/options/annotations.proto";
+
 option go_package = "github.com/EmptyShadow/go-examples/grpc-upload-file/pb/files/v1;files";
 
 service FilesService {

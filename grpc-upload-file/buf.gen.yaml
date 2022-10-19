@@ -3,20 +3,20 @@ managed:
   enabled: false
 plugins:
   - name: go
-    out: ./pb
+    out: .
     opt: 
       - module=github.com/EmptyShadow/go-examples/grpc-upload-file
   - name: go-grpc
-    out: ./pb
+    out: .
     opt:
       - module=github.com/EmptyShadow/go-examples/grpc-upload-file
       - require_unimplemented_servers=true
   - name: grpc-gateway
-    out: ./pb
+    out: .
     opt:
       - module=github.com/EmptyShadow/go-examples/grpc-upload-file
   - name: openapiv2
-    out: ./pb
+    out: .
     opt:
       - allow_merge
     strategy: all

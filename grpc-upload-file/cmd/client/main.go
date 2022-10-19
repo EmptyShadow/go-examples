@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/EmptyShadow/go-examples/grpc-upload-file/pb/pb/files/v1"
+	"github.com/EmptyShadow/go-examples/grpc-upload-file/pb/files/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
