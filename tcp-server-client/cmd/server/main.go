@@ -8,8 +8,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"sort"
 	"sync/atomic"
 	"time"
 )
@@ -27,7 +25,6 @@ func main() {
 	dumpFileName := flag.String("dump-file-name", "numbers.dump", "file name of numbers dump")
 	dumpPeriod := flag.Duration("dump-period", time.Second, "dump period")
 	flag.Parse()
-	dumpFilePath := filepath.Join(*dumpDir, *dumpFileName)
 
 	logger := log.New(os.Stdout, "tcp-server-example -> ", log.LstdFlags)
 	logger.Println("start server")
@@ -40,12 +37,8 @@ func main() {
 	defer netListener.Close()
 
 	inmemorySetOfNumbers := NewInmemorySetOfNumbers()
-	saveNumbersDump := SaveNumbersDump(func(ctx context.Context, numbers []int64) error {
-		sort.Slice(numbers, func(i, j int) bool { return numbers[i] < numbers[j] })
-		logger.Println("Save", numbers, "to", dumpFilePath)
-		return nil
-	})
-	numbersDumpWorker := NewNumbersDumpWorker(inmemorySetOfNumbers, saveNumbersDump, *dumpPeriod)
+	dumpFile := NewDumpFile(*dumpDir, *dumpFileName)
+	numbersDumpWorker := NewNumbersDumpWorker(inmemorySetOfNumbers, dumpFile.Save, *dumpPeriod)
 	numbersHandler := NewNumbersHandler(inmemorySetOfNumbers)
 	connectionHandler := NewConnectionHandler(numbersHandler)
 	handleConnectionLogger := NewHandleConnectionLogger(logger, connectionHandler.HandleConnection)
