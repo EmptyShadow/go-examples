@@ -28,6 +28,7 @@ func main() {
 
 	logger := log.New(os.Stdout, "tcp-server-example -> ", log.LstdFlags)
 	logger.Println("start server")
+	defer logger.Println("stop server")
 
 	netListener, err := net.Listen("tcp", *listenAddress)
 	if err != nil {
@@ -45,7 +46,6 @@ func main() {
 	connectionAcceptWorker := NewConnectionAcceptWorker(netListener, handleConnectionLogger.HandleConnection)
 
 	startWork(numbersDumpWorker, connectionAcceptWorker, logger, *shutdownTimeout)
-	logger.Println("stop server")
 }
 
 func startWork(
