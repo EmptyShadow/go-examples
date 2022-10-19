@@ -3,14 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"sync"
 )
-
-type SetOfNumbers interface {
-	sync.Locker // only for atomic write and read.
-	SaveNumber(ctx context.Context, number int64) error
-	StreamOfNumbers(ctx context.Context) (<-chan int64, <-chan error)
-}
 
 type NumbersHandler struct {
 	setOfNumbers SetOfNumbers
@@ -40,19 +33,18 @@ func (h *NumbersHandler) Handle(ctx context.Context, number int64) (sumOfSquares
 
 func (h *NumbersHandler) calculateSumOfSquares(ctx context.Context) (sumOfSquares int64, err error) {
 	var (
-		number         int64
-		streamIsClosed bool
+		number          int64
+		streamIsOpenned bool
 	)
 
 	numbers, errs := h.setOfNumbers.StreamOfNumbers(ctx)
 	for {
 		select {
-		case number, streamIsClosed = <-numbers:
+		case number, streamIsOpenned = <-numbers:
 			sumOfSquares += number * number
-		case err, streamIsClosed = <-errs:
-			break
+		case err, streamIsOpenned = <-errs:
 		}
-		if streamIsClosed {
+		if !streamIsOpenned {
 			break
 		}
 	}

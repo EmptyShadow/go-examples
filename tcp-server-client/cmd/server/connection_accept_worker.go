@@ -10,7 +10,7 @@ import (
 
 type HandleConnection func(conn net.Conn) error
 
-type Server struct {
+type ConnectionAcceptWorker struct {
 	listener            net.Listener
 	handleConn          HandleConnection
 	groupOfConnHandlers sync.WaitGroup
@@ -18,8 +18,8 @@ type Server struct {
 	shutdownStarted int32
 }
 
-func NewServer(netListener net.Listener, h HandleConnection) *Server {
-	server := Server{
+func NewConnectionAcceptWorker(netListener net.Listener, h HandleConnection) *ConnectionAcceptWorker {
+	server := ConnectionAcceptWorker{
 		listener:   netListener,
 		handleConn: h,
 	}
@@ -27,7 +27,7 @@ func NewServer(netListener net.Listener, h HandleConnection) *Server {
 	return &server
 }
 
-func (s *Server) Serve() error {
+func (s *ConnectionAcceptWorker) Serve() error {
 	for {
 		conn, err := s.listener.Accept()
 		if errors.Is(err, net.ErrClosed) {
@@ -51,7 +51,7 @@ func (s *Server) Serve() error {
 	}
 }
 
-func (s *Server) Shutdown() error {
+func (s *ConnectionAcceptWorker) Shutdown() error {
 	atomic.AddInt32(&s.shutdownStarted, 1)
 	s.groupOfConnHandlers.Wait()
 
