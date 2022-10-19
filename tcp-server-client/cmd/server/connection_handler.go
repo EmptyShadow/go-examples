@@ -25,7 +25,10 @@ func NewConnectionHandler(numbersHandler *NumbersHandler) *ConnectionHandler {
 }
 
 func (h *ConnectionHandler) HandleConnection(conn net.Conn) error {
-	ctx := context.TODO()
+	ctx := context.Background()
+	ctx, cancelHandle := context.WithCancel(ctx)
+	defer cancelHandle()
+
 	protocol := tcp_server_client.NewProtocol(conn)
 
 	for {
