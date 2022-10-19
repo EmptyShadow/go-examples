@@ -1,14 +1,14 @@
 package main
 
 import (
-	"encoding/binary"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"math/rand"
 	"net"
 	"time"
+
+	tcp_server_client "github.com/EmptyShadow/go-examples/tcp-server-client"
 )
 
 func main() {
@@ -16,6 +16,7 @@ func main() {
 
 	targetAddress := flag.String("target-address", ":9999", "address of target tcp server")
 	dialTimeout := flag.Duration("dial-timeout", time.Second*30, "durection of dial timeout")
+	repeatCount := flag.Int("repeat-count", 5, "repeat count")
 	flag.Parse()
 
 	conn, err := net.DialTimeout("tcp", *targetAddress, *dialTimeout)
@@ -27,41 +28,26 @@ func main() {
 
 	log.Println("connect from", conn.LocalAddr().String(), "to", conn.RemoteAddr().String())
 
-	buf := make([]byte, 10)
+	protocol := tcp_server_client.NewProtocol(conn)
 
-	for {
+	for i := 0; i < *repeatCount; i++ {
 		number := rand.Int63()
 		log.Println("generate number", number)
 
-		binary.PutVarint(buf, number)
-
-		_, err = conn.Write(buf)
-		if err != nil {
-			err = fmt.Errorf("send number to server: %w", err)
+		if err = protocol.WriteNumber(number); err != nil {
+			err = fmt.Errorf("write number: %w", err)
 			log.Println(err)
 			break
 		}
 
-		_, err = conn.Read(buf)
+		number, err = protocol.ReadNumber()
 		if err != nil {
-			err = fmt.Errorf("get state from server: %w", err)
+			err = fmt.Errorf("read number: %w", err)
 			log.Println(err)
 			break
 		}
 
-		number, n := binary.Varint(buf)
-		if n < 0 {
-			err = errors.New("read large number")
-		}
-		if n == 0 {
-			err = errors.New("buf is small")
-		}
-		if err != nil {
-			log.Println(err)
-			break
-		}
-
-		log.Println("State from server:", number)
+		log.Println("sum of squares:", number)
 		time.Sleep(time.Second)
 	}
 

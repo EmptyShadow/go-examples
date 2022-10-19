@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"time"
+
+	tcp_server_client "github.com/EmptyShadow/go-examples/tcp-server-client"
 )
 
 type ConnectionHandler struct {
@@ -24,25 +25,16 @@ func NewConnectionHandler(numbersHandler *NumbersHandler) *ConnectionHandler {
 }
 
 func (h *ConnectionHandler) HandleConnection(conn net.Conn) error {
-	buf := make([]byte, 10)
-
-	ctx := context.Background()
+	ctx := context.TODO()
+	protocol := tcp_server_client.NewProtocol(conn)
 
 	for {
-		_, err := conn.Read(buf)
+		number, err := protocol.ReadNumber()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("read bytes from conn: %w", err)
-		}
-
-		number, n := binary.Varint(buf)
-		if n < 0 {
-			return errors.New("read large number")
-		}
-		if n == 0 {
-			return errors.New("buf is small")
+			return fmt.Errorf("read number: %w", err)
 		}
 
 		sumOfSquares, err := h.handleNumber(ctx, number)
@@ -50,10 +42,8 @@ func (h *ConnectionHandler) HandleConnection(conn net.Conn) error {
 			return fmt.Errorf("handle number: %w", err)
 		}
 
-		binary.PutVarint(buf, sumOfSquares)
-
-		if _, err = conn.Write(buf); err != nil {
-			return fmt.Errorf("write response: %w", err)
+		if err = protocol.WriteNumber(sumOfSquares); err != nil {
+			return fmt.Errorf("write sum of squares: %w", err)
 		}
 	}
 
