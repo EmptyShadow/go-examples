@@ -1,0 +1,8 @@
+version: v1
+name: buf.build/grpc-gateway/openapi
+lint:
+  use:
+    - DEFAULT
+breaking:
+  use:
+    - FILE
