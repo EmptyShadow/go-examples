@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"math/rand"
 	"net"
+	"os"
+	"os/signal"
 	"time"
 
 	tcp_server_client "github.com/EmptyShadow/go-examples/tcp-server-client"
@@ -16,7 +19,6 @@ func main() {
 
 	targetAddress := flag.String("target-address", ":9999", "address of target tcp server")
 	dialTimeout := flag.Duration("dial-timeout", time.Second*30, "durection of dial timeout")
-	repeatCount := flag.Int("repeat-count", 5, "repeat count")
 	flag.Parse()
 
 	conn, err := net.DialTimeout("tcp", *targetAddress, *dialTimeout)
@@ -30,8 +32,21 @@ func main() {
 
 	protocol := tcp_server_client.NewProtocol(conn)
 
-	for i := 0; i < *repeatCount; i++ {
-		number := rand.Int63()
+	clientCtx := context.Background()
+	clientCtx, cancelSignalNotify := signal.NotifyContext(clientCtx, os.Interrupt)
+	defer cancelSignalNotify()
+
+	var stopClient bool
+START_LOOP:
+	for !stopClient {
+		select {
+		case <-clientCtx.Done():
+			stopClient = true
+			break START_LOOP
+		default:
+		}
+
+		number := rand.Int63() % 1000
 		log.Println("generate number", number)
 
 		if err = protocol.WriteNumber(number); err != nil {
@@ -48,7 +63,6 @@ func main() {
 		}
 
 		log.Println("sum of squares:", number)
-		time.Sleep(time.Second)
 	}
 
 	log.Println("stop client")
