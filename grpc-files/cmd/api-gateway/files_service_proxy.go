@@ -8,8 +8,7 @@ import (
 	"net/http"
 
 	"github.com/EmptyShadow/go-examples/grpc-files/pb/files/v1"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	gwruntime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -17,14 +16,14 @@ import (
 
 type FilesServiceProxy struct {
 	filesServiceClient files.FilesServiceClient
-	mux                *gwruntime.ServeMux
+	mux                *runtime.ServeMux
 
 	uploadFileChunkSize int
 }
 
 func NewFilesServiceProxy(
 	filesServiceClient files.FilesServiceClient,
-	mux *gwruntime.ServeMux,
+	mux *runtime.ServeMux,
 ) *FilesServiceProxy {
 	return &FilesServiceProxy{
 		filesServiceClient:  filesServiceClient,
@@ -33,7 +32,7 @@ func NewFilesServiceProxy(
 	}
 }
 
-func (p *FilesServiceProxy) RegistrationHTTP(mux *gwruntime.ServeMux) {
+func (p *FilesServiceProxy) RegistrationHTTP(mux *runtime.ServeMux) {
 	mux.HandlePath(http.MethodPost, uploadFilePathPattern, p.UploadFile)
 	mux.HandlePath(http.MethodGet, downloadFilePathPattern, p.DownloadFile)
 }
@@ -55,7 +54,7 @@ func (p *FilesServiceProxy) UploadFile(w http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	gwruntime.ForwardResponseMessage(ctx, p.mux, outboundMarshaler, w, req, res, p.mux.GetForwardResponseOptions()...)
+	runtime.ForwardResponseMessage(ctx, p.mux, outboundMarshaler, w, req, res, p.mux.GetForwardResponseOptions()...)
 }
 
 const formFileName = "attachment"
@@ -133,7 +132,7 @@ func (p *FilesServiceProxy) DownloadFile(resw http.ResponseWriter, req *http.Req
 		return
 	}
 
-	gwruntime.ForwardResponseMessage(ctx, p.mux, outboundMarshaler, resw, req, &emptypb.Empty{}, p.mux.GetForwardResponseOptions()...)
+	runtime.ForwardResponseMessage(ctx, p.mux, outboundMarshaler, resw, req, &emptypb.Empty{}, p.mux.GetForwardResponseOptions()...)
 }
 
 func (p *FilesServiceProxy) downloadFile(ctx context.Context, resw http.ResponseWriter, req *http.Request, pathParams map[string]string) error {
