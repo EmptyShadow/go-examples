@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
 )
 
+var ErrFileNotFound = errors.New("file not found")
+
 type FilesSystem interface {
 	SaveFile(ctx context.Context, name string, content io.Reader) (size uint64, err error)
+	ReadFile(ctx context.Context, name string) (size uint64, content io.ReadCloser, err error)
 }
 
 type FilesService struct {
@@ -26,9 +30,9 @@ type FileInfo struct {
 }
 
 type FileHeader struct {
-	Name      string
-	Extension string
-	Size      uint64
+	Name        string
+	ContentType string
+	Size        uint64
 }
 
 func (s *FilesService) UploadFile(ctx context.Context, info FileInfo, fileContent io.Reader) (*FileHeader, error) {
@@ -40,10 +44,28 @@ func (s *FilesService) UploadFile(ctx context.Context, info FileInfo, fileConten
 	}
 
 	h := FileHeader{
-		Name:      info.Name,
-		Extension: extension,
-		Size:      size,
+		Name:        info.Name,
+		ContentType: extension, // TODO: detect content type by extension.
+		Size:        size,
 	}
 
 	return &h, nil
+}
+
+func (s *FilesService) DownloadFile(ctx context.Context, name string) (*FileHeader, io.ReadCloser, error) {
+	size, fileContent, err := s.filesSystem.ReadFile(ctx, name)
+	if err != nil {
+		return nil, nil, fmt.Errorf("start read file: %w", err)
+	}
+	if fileContent == nil {
+		return nil, nil, ErrFileNotFound
+	}
+
+	extension := filepath.Ext(name)
+
+	return &FileHeader{
+		Name:        name,
+		ContentType: extension, // TODO: detect content type by extension.
+		Size:        size,
+	}, fileContent, nil
 }

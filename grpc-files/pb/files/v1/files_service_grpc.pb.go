@@ -24,7 +24,6 @@ const _ = grpc.SupportPackageIsVersion7
 type FilesServiceClient interface {
 	UploadFile(ctx context.Context, opts ...grpc.CallOption) (FilesService_UploadFileClient, error)
 	DownloadFile(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (FilesService_DownloadFileClient, error)
-	DownloadFileasdasd(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (*DownloadFileResponse, error)
 }
 
 type filesServiceClient struct {
@@ -101,22 +100,12 @@ func (x *filesServiceDownloadFileClient) Recv() (*DownloadFileResponse, error) {
 	return m, nil
 }
 
-func (c *filesServiceClient) DownloadFileasdasd(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (*DownloadFileResponse, error) {
-	out := new(DownloadFileResponse)
-	err := c.cc.Invoke(ctx, "/example.files.v1.FilesService/DownloadFileasdasd", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // FilesServiceServer is the server API for FilesService service.
 // All implementations must embed UnimplementedFilesServiceServer
 // for forward compatibility
 type FilesServiceServer interface {
 	UploadFile(FilesService_UploadFileServer) error
 	DownloadFile(*DownloadFileRequest, FilesService_DownloadFileServer) error
-	DownloadFileasdasd(context.Context, *DownloadFileRequest) (*DownloadFileResponse, error)
 	mustEmbedUnimplementedFilesServiceServer()
 }
 
@@ -129,9 +118,6 @@ func (UnimplementedFilesServiceServer) UploadFile(FilesService_UploadFileServer)
 }
 func (UnimplementedFilesServiceServer) DownloadFile(*DownloadFileRequest, FilesService_DownloadFileServer) error {
 	return status.Errorf(codes.Unimplemented, "method DownloadFile not implemented")
-}
-func (UnimplementedFilesServiceServer) DownloadFileasdasd(context.Context, *DownloadFileRequest) (*DownloadFileResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DownloadFileasdasd not implemented")
 }
 func (UnimplementedFilesServiceServer) mustEmbedUnimplementedFilesServiceServer() {}
 
@@ -193,36 +179,13 @@ func (x *filesServiceDownloadFileServer) Send(m *DownloadFileResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _FilesService_DownloadFileasdasd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DownloadFileRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FilesServiceServer).DownloadFileasdasd(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/example.files.v1.FilesService/DownloadFileasdasd",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FilesServiceServer).DownloadFileasdasd(ctx, req.(*DownloadFileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // FilesService_ServiceDesc is the grpc.ServiceDesc for FilesService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var FilesService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "example.files.v1.FilesService",
 	HandlerType: (*FilesServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "DownloadFileasdasd",
-			Handler:    _FilesService_DownloadFileasdasd_Handler,
-		},
-	},
+	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "UploadFile",

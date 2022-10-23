@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package example.files.v1;
 
+import "google/api/http.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/duration.proto";
@@ -14,12 +15,25 @@ import "grpc/gateway/protoc_gen_openapiv2/options/annotations.proto";
 option go_package = "github.com/EmptyShadow/go-examples/grpc-files/pb/files/v1;files";
 
 service FilesService {
-    rpc UploadFile(stream UploadFileRequest) returns (UploadFileResponse);
-    rpc DownloadFile(DownloadFileRequest) returns (stream DownloadFileResponse);
-    rpc DownloadFileasdasd(DownloadFileRequest) returns (DownloadFileResponse) {
+    rpc UploadFile(stream UploadFileRequest) returns (UploadFileResponse) {
         option (google.api.http) = {
-            post: "/v1/example/a_bit_of_everything"
-            body: "*"
+            post: "/v1/files";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Upload file to remote file system.";
+            consumes: "multipart/form-data";
+            produces: "application/json";
+        };
+    };
+
+    rpc DownloadFile(DownloadFileRequest) returns (stream DownloadFileResponse)  {
+        option (google.api.http) = {
+            get: "/v1/files/{name}";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Download file to remote file system.";
+            produces: "multipart/form-data";
+            consumes: "application/json";
         };
     };
 }
@@ -52,6 +66,6 @@ message DownloadFileResponse {
 
 message FileHeader {
     string name = 1;
-    string extension = 2;
+    string content_type = 2;
     uint64 size = 3;
 }

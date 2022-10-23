@@ -16,14 +16,15 @@
     "application/json"
   ],
   "paths": {
-    "/v1/example/a_bit_of_everything": {
+    "/v1/files": {
       "post": {
-        "operationId": "FilesService_DownloadFileasdasd",
+        "summary": "Upload file to remote file system.",
+        "operationId": "FilesService_UploadFile",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1DownloadFileResponse"
+              "$ref": "#/definitions/v1UploadFileResponse"
             }
           },
           "default": {
@@ -35,16 +36,67 @@
         },
         "parameters": [
           {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1DownloadFileRequest"
-            }
+            "name": "fileInfo.name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "fileContentChunk",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
           }
         ],
         "tags": [
           "FilesService"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/v1/files/{name}": {
+      "get": {
+        "summary": "Download file to remote file system.",
+        "operationId": "FilesService_DownloadFile",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/v1DownloadFileResponse"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of v1DownloadFileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "FilesService"
+        ],
+        "produces": [
+          "multipart/form-data"
         ]
       }
     }
@@ -77,14 +129,6 @@
         }
       }
     },
-    "v1DownloadFileRequest": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        }
-      }
-    },
     "v1DownloadFileResponse": {
       "type": "object",
       "properties": {
@@ -103,7 +147,7 @@
         "name": {
           "type": "string"
         },
-        "extension": {
+        "contentType": {
           "type": "string"
         },
         "size": {

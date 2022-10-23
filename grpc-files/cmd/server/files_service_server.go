@@ -8,19 +8,23 @@ import (
 
 	"github.com/EmptyShadow/go-examples/grpc-files/pb/files/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type FilesServiceServer struct {
 	files.UnimplementedFilesServiceServer
 
-	service *FilesService
-	bufsize int
+	service               *FilesService
+	uploadFileBufferSize  int
+	downloadFileChunkSize int
 }
 
 func NewFilesServiceServer(service *FilesService) *FilesServiceServer {
 	return &FilesServiceServer{
-		service: service,
-		bufsize: 4096,
+		service:               service,
+		uploadFileBufferSize:  1024,
+		downloadFileChunkSize: 1024,
 	}
 }
 
@@ -38,7 +42,7 @@ func (s *FilesServiceServer) UploadFile(stream files.FilesService_UploadFileServ
 		Name: msg.GetFileInfo().GetName(),
 	}
 
-	fileReader := bufio.NewReaderSize(NewFileContentReader(stream), s.bufsize)
+	fileReader := bufio.NewReaderSize(NewFileContentReader(stream), s.uploadFileBufferSize)
 
 	fileHeader, err := s.service.UploadFile(stream.Context(), fileInfo, fileReader)
 	if err != nil {
@@ -47,13 +51,59 @@ func (s *FilesServiceServer) UploadFile(stream files.FilesService_UploadFileServ
 
 	err = stream.SendAndClose(&files.UploadFileResponse{
 		FileHeader: &files.FileHeader{
-			Name:      fileHeader.Name,
-			Extension: fileHeader.Extension,
-			Size:      fileHeader.Size,
+			Name:        fileHeader.Name,
+			ContentType: fileHeader.ContentType,
+			Size:        fileHeader.Size,
 		},
 	})
 	if err != nil {
 		return fmt.Errorf("send response and close stream: %w", err)
+	}
+
+	return nil
+}
+
+func (s *FilesServiceServer) DownloadFile(req *files.DownloadFileRequest, stream files.FilesService_DownloadFileServer) error {
+	fileHeader, fileContent, err := s.service.DownloadFile(stream.Context(), req.Name)
+	if errors.Is(err, ErrFileNotFound) {
+		return status.Error(codes.NotFound, ErrFileNotFound.Error())
+	}
+	if err != nil {
+		return fmt.Errorf("download file: %w", err)
+	}
+
+	err = stream.Send(&files.DownloadFileResponse{
+		Data: &files.DownloadFileResponse_FileHeader{
+			FileHeader: &files.FileHeader{
+				Name:        fileHeader.Name,
+				ContentType: fileHeader.ContentType,
+				Size:        fileHeader.Size,
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("send file header to stream: %w", err)
+	}
+
+	chunk := make([]byte, s.downloadFileChunkSize)
+
+	for {
+		n, err := fileContent.Read(chunk[:])
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("read chunk of file content: %w", err)
+		}
+
+		err = stream.Send(&files.DownloadFileResponse{
+			Data: &files.DownloadFileResponse_FileContentChunk{
+				FileContentChunk: chunk[:n],
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("send chunk of file content to stream: %w", err)
+		}
 	}
 
 	return nil

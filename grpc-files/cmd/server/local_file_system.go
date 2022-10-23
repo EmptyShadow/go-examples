@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -52,4 +53,24 @@ func (s *LocalFileSystem) SaveFile(ctx context.Context, name string, content io.
 	}
 
 	return uint64(written), nil
+}
+
+func (s *LocalFileSystem) ReadFile(ctx context.Context, name string) (size uint64, content io.ReadCloser, err error) {
+	name = filepath.Join(s.root, name)
+
+	f, err := os.Open(name)
+	if errors.Is(err, os.ErrNotExist) {
+		return 0, nil, nil
+	}
+	if err != nil {
+		return 0, nil, fmt.Errorf("open file: %w", err)
+	}
+
+	info, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return 0, nil, fmt.Errorf("get file info: %w", err)
+	}
+
+	return uint64(info.Size()), f, nil
 }
