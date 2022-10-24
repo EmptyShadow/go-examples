@@ -22,7 +22,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FilesServiceClient interface {
+	ListFilesHeader(ctx context.Context, in *ListFilesHeaderRequest, opts ...grpc.CallOption) (*ListFilesHeaderResponse, error)
 	UploadFile(ctx context.Context, opts ...grpc.CallOption) (FilesService_UploadFileClient, error)
+	DownloadFile(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (FilesService_DownloadFileClient, error)
 }
 
 type filesServiceClient struct {
@@ -31,6 +33,15 @@ type filesServiceClient struct {
 
 func NewFilesServiceClient(cc grpc.ClientConnInterface) FilesServiceClient {
 	return &filesServiceClient{cc}
+}
+
+func (c *filesServiceClient) ListFilesHeader(ctx context.Context, in *ListFilesHeaderRequest, opts ...grpc.CallOption) (*ListFilesHeaderResponse, error) {
+	out := new(ListFilesHeaderResponse)
+	err := c.cc.Invoke(ctx, "/example.files.v1.FilesService/ListFilesHeader", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *filesServiceClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (FilesService_UploadFileClient, error) {
@@ -67,11 +78,45 @@ func (x *filesServiceUploadFileClient) CloseAndRecv() (*UploadFileResponse, erro
 	return m, nil
 }
 
+func (c *filesServiceClient) DownloadFile(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (FilesService_DownloadFileClient, error) {
+	stream, err := c.cc.NewStream(ctx, &FilesService_ServiceDesc.Streams[1], "/example.files.v1.FilesService/DownloadFile", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &filesServiceDownloadFileClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type FilesService_DownloadFileClient interface {
+	Recv() (*DownloadFileResponse, error)
+	grpc.ClientStream
+}
+
+type filesServiceDownloadFileClient struct {
+	grpc.ClientStream
+}
+
+func (x *filesServiceDownloadFileClient) Recv() (*DownloadFileResponse, error) {
+	m := new(DownloadFileResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // FilesServiceServer is the server API for FilesService service.
 // All implementations must embed UnimplementedFilesServiceServer
 // for forward compatibility
 type FilesServiceServer interface {
+	ListFilesHeader(context.Context, *ListFilesHeaderRequest) (*ListFilesHeaderResponse, error)
 	UploadFile(FilesService_UploadFileServer) error
+	DownloadFile(*DownloadFileRequest, FilesService_DownloadFileServer) error
 	mustEmbedUnimplementedFilesServiceServer()
 }
 
@@ -79,8 +124,14 @@ type FilesServiceServer interface {
 type UnimplementedFilesServiceServer struct {
 }
 
+func (UnimplementedFilesServiceServer) ListFilesHeader(context.Context, *ListFilesHeaderRequest) (*ListFilesHeaderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListFilesHeader not implemented")
+}
 func (UnimplementedFilesServiceServer) UploadFile(FilesService_UploadFileServer) error {
 	return status.Errorf(codes.Unimplemented, "method UploadFile not implemented")
+}
+func (UnimplementedFilesServiceServer) DownloadFile(*DownloadFileRequest, FilesService_DownloadFileServer) error {
+	return status.Errorf(codes.Unimplemented, "method DownloadFile not implemented")
 }
 func (UnimplementedFilesServiceServer) mustEmbedUnimplementedFilesServiceServer() {}
 
@@ -93,6 +144,24 @@ type UnsafeFilesServiceServer interface {
 
 func RegisterFilesServiceServer(s grpc.ServiceRegistrar, srv FilesServiceServer) {
 	s.RegisterService(&FilesService_ServiceDesc, srv)
+}
+
+func _FilesService_ListFilesHeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFilesHeaderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FilesServiceServer).ListFilesHeader(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/example.files.v1.FilesService/ListFilesHeader",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FilesServiceServer).ListFilesHeader(ctx, req.(*ListFilesHeaderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _FilesService_UploadFile_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -121,18 +190,49 @@ func (x *filesServiceUploadFileServer) Recv() (*UploadFileRequest, error) {
 	return m, nil
 }
 
+func _FilesService_DownloadFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DownloadFileRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(FilesServiceServer).DownloadFile(m, &filesServiceDownloadFileServer{stream})
+}
+
+type FilesService_DownloadFileServer interface {
+	Send(*DownloadFileResponse) error
+	grpc.ServerStream
+}
+
+type filesServiceDownloadFileServer struct {
+	grpc.ServerStream
+}
+
+func (x *filesServiceDownloadFileServer) Send(m *DownloadFileResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // FilesService_ServiceDesc is the grpc.ServiceDesc for FilesService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var FilesService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "example.files.v1.FilesService",
 	HandlerType: (*FilesServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListFilesHeader",
+			Handler:    _FilesService_ListFilesHeader_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "UploadFile",
 			Handler:       _FilesService_UploadFile_Handler,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "DownloadFile",
+			Handler:       _FilesService_DownloadFile_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "example/files/v1/files_service.proto",

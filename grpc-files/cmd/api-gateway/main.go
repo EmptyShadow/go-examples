@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/EmptyShadow/go-examples/grpc-upload-file/pb/pb/files/v1"
+	"github.com/EmptyShadow/go-examples/grpc-files/pb/files/v1"
 	gwruntime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -41,8 +41,10 @@ func main() {
 	mux := gwruntime.NewServeMux(gwruntime.WithMarshalerOption("*", marshler))
 
 	filesServiceClient := files.NewFilesServiceClient(conn)
-	filesServiceProxy := NewFilesServiceProxy(filesServiceClient, marshler)
-	filesServiceProxy.RegistrationHTTP(mux)
+	filesServiceProxy := NewFilesServiceProxy(filesServiceClient, mux)
+
+	files.RegisterFilesServiceHandlerClient(context.TODO(), mux, filesServiceClient)
+	filesServiceProxy.RegistrationHTTP(mux) // Для того чтобы переопределить методы основного FilesServiceGateway.
 
 	tcpListener, err := net.Listen("tcp", tcpAddress)
 	if err != nil {

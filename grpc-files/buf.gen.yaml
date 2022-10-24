@@ -1,0 +1,22 @@
+version: v1
+managed:
+  enabled: false
+plugins:
+  - name: go
+    out: .
+    opt: 
+      - module=github.com/EmptyShadow/go-examples/grpc-files
+  - name: go-grpc
+    out: .
+    opt:
+      - module=github.com/EmptyShadow/go-examples/grpc-files
+      - require_unimplemented_servers=true
+  - name: grpc-gateway
+    out: .
+    opt:
+      - module=github.com/EmptyShadow/go-examples/grpc-files
+  - name: openapiv2
+    out: .
+    opt:
+      - allow_merge
+    strategy: all

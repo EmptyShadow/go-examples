@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -37,6 +39,28 @@ func NewLocalFileSystem(root string) (_ *LocalFileSystem, err error) {
 	return &lsf, nil
 }
 
+func (s *LocalFileSystem) ListFilesInfo(ctx context.Context) ([]FileInfo, error) {
+	osFilesInfo, err := ioutil.ReadDir(s.root)
+	if err != nil {
+		return nil, fmt.Errorf("all files info from root dir: %w", err)
+	}
+
+	filesInfo := make([]FileInfo, 0, len(osFilesInfo))
+
+	for i := range osFilesInfo {
+		if osFilesInfo[i].IsDir() {
+			continue
+		}
+
+		filesInfo = append(filesInfo, FileInfo{
+			Name: osFilesInfo[i].Name(),
+			Size: uint64(osFilesInfo[i].Size()),
+		})
+	}
+
+	return filesInfo, nil
+}
+
 func (s *LocalFileSystem) SaveFile(ctx context.Context, name string, content io.Reader) (size uint64, err error) {
 	name = filepath.Join(s.root, name)
 
@@ -52,4 +76,24 @@ func (s *LocalFileSystem) SaveFile(ctx context.Context, name string, content io.
 	}
 
 	return uint64(written), nil
+}
+
+func (s *LocalFileSystem) ReadFile(ctx context.Context, name string) (size uint64, content io.ReadCloser, err error) {
+	name = filepath.Join(s.root, name)
+
+	f, err := os.Open(name)
+	if errors.Is(err, os.ErrNotExist) {
+		return 0, nil, nil
+	}
+	if err != nil {
+		return 0, nil, fmt.Errorf("open file: %w", err)
+	}
+
+	info, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return 0, nil, fmt.Errorf("get file info: %w", err)
+	}
+
+	return uint64(info.Size()), f, nil
 }
