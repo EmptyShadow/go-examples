@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FilesServiceClient interface {
+	ListFilesHeader(ctx context.Context, in *ListFilesHeaderRequest, opts ...grpc.CallOption) (*ListFilesHeaderResponse, error)
 	UploadFile(ctx context.Context, opts ...grpc.CallOption) (FilesService_UploadFileClient, error)
 	DownloadFile(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (FilesService_DownloadFileClient, error)
 }
@@ -32,6 +33,15 @@ type filesServiceClient struct {
 
 func NewFilesServiceClient(cc grpc.ClientConnInterface) FilesServiceClient {
 	return &filesServiceClient{cc}
+}
+
+func (c *filesServiceClient) ListFilesHeader(ctx context.Context, in *ListFilesHeaderRequest, opts ...grpc.CallOption) (*ListFilesHeaderResponse, error) {
+	out := new(ListFilesHeaderResponse)
+	err := c.cc.Invoke(ctx, "/example.files.v1.FilesService/ListFilesHeader", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *filesServiceClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (FilesService_UploadFileClient, error) {
@@ -104,6 +114,7 @@ func (x *filesServiceDownloadFileClient) Recv() (*DownloadFileResponse, error) {
 // All implementations must embed UnimplementedFilesServiceServer
 // for forward compatibility
 type FilesServiceServer interface {
+	ListFilesHeader(context.Context, *ListFilesHeaderRequest) (*ListFilesHeaderResponse, error)
 	UploadFile(FilesService_UploadFileServer) error
 	DownloadFile(*DownloadFileRequest, FilesService_DownloadFileServer) error
 	mustEmbedUnimplementedFilesServiceServer()
@@ -113,6 +124,9 @@ type FilesServiceServer interface {
 type UnimplementedFilesServiceServer struct {
 }
 
+func (UnimplementedFilesServiceServer) ListFilesHeader(context.Context, *ListFilesHeaderRequest) (*ListFilesHeaderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListFilesHeader not implemented")
+}
 func (UnimplementedFilesServiceServer) UploadFile(FilesService_UploadFileServer) error {
 	return status.Errorf(codes.Unimplemented, "method UploadFile not implemented")
 }
@@ -130,6 +144,24 @@ type UnsafeFilesServiceServer interface {
 
 func RegisterFilesServiceServer(s grpc.ServiceRegistrar, srv FilesServiceServer) {
 	s.RegisterService(&FilesService_ServiceDesc, srv)
+}
+
+func _FilesService_ListFilesHeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFilesHeaderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FilesServiceServer).ListFilesHeader(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/example.files.v1.FilesService/ListFilesHeader",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FilesServiceServer).ListFilesHeader(ctx, req.(*ListFilesHeaderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _FilesService_UploadFile_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -185,7 +217,12 @@ func (x *filesServiceDownloadFileServer) Send(m *DownloadFileResponse) error {
 var FilesService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "example.files.v1.FilesService",
 	HandlerType: (*FilesServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListFilesHeader",
+			Handler:    _FilesService_ListFilesHeader_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "UploadFile",

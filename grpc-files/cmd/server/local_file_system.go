@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -36,6 +37,28 @@ func NewLocalFileSystem(root string) (_ *LocalFileSystem, err error) {
 	}
 
 	return &lsf, nil
+}
+
+func (s *LocalFileSystem) ListFilesInfo(ctx context.Context) ([]FileInfo, error) {
+	osFilesInfo, err := ioutil.ReadDir(s.root)
+	if err != nil {
+		return nil, fmt.Errorf("all files info from root dir: %w", err)
+	}
+
+	filesInfo := make([]FileInfo, 0, len(osFilesInfo))
+
+	for i := range osFilesInfo {
+		if osFilesInfo[i].IsDir() {
+			continue
+		}
+
+		filesInfo = append(filesInfo, FileInfo{
+			Name: osFilesInfo[i].Name(),
+			Size: uint64(osFilesInfo[i].Size()),
+		})
+	}
+
+	return filesInfo, nil
 }
 
 func (s *LocalFileSystem) SaveFile(ctx context.Context, name string, content io.Reader) (size uint64, err error) {

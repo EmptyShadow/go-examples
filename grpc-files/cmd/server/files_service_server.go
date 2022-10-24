@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -32,19 +33,41 @@ func (s *FilesServiceServer) RegistrationGRPC(r grpc.ServiceRegistrar) {
 	files.RegisterFilesServiceServer(r, s)
 }
 
+func (s *FilesServiceServer) ListFilesHeader(ctx context.Context, _ *files.ListFilesHeaderRequest) (resp *files.ListFilesHeaderResponse, err error) {
+	fileHeaders, err := s.service.ListFilesHeader(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get list of files header")
+	}
+
+	items := make([]*files.FileHeader, len(fileHeaders))
+
+	for i := range fileHeaders {
+		items[i] = &files.FileHeader{
+			Name:        fileHeaders[i].Name,
+			ContentType: fileHeaders[i].ContentType,
+			Size:        fileHeaders[i].Size,
+		}
+	}
+
+	return &files.ListFilesHeaderResponse{
+		Items: items,
+	}, nil
+}
+
 func (s *FilesServiceServer) UploadFile(stream files.FilesService_UploadFileServer) error {
 	msg, err := stream.Recv()
 	if err != nil {
 		return fmt.Errorf("read first message: %w", err)
 	}
 
-	fileInfo := FileInfo{
-		Name: msg.GetFileInfo().GetName(),
+	fileInfo := msg.GetFileInfo()
+	if fileInfo == nil {
+		return status.Error(codes.Internal, "first message need have type of UploadFileRequest_Info")
 	}
 
 	fileReader := bufio.NewReaderSize(NewFileContentReader(stream), s.uploadFileBufferSize)
 
-	fileHeader, err := s.service.UploadFile(stream.Context(), fileInfo, fileReader)
+	fileHeader, err := s.service.UploadFile(stream.Context(), fileInfo.GetName(), fileReader)
 	if err != nil {
 		return fmt.Errorf("handle upload file: %w", err)
 	}

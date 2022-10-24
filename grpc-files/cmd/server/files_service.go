@@ -11,6 +11,7 @@ import (
 var ErrFileNotFound = errors.New("file not found")
 
 type FilesSystem interface {
+	ListFilesInfo(ctx context.Context) ([]FileInfo, error)
 	SaveFile(ctx context.Context, name string, content io.Reader) (size uint64, err error)
 	ReadFile(ctx context.Context, name string) (size uint64, content io.ReadCloser, err error)
 }
@@ -27,6 +28,7 @@ func NewFilesService(filesSystem FilesSystem) *FilesService {
 
 type FileInfo struct {
 	Name string
+	Size uint64
 }
 
 type FileHeader struct {
@@ -35,16 +37,37 @@ type FileHeader struct {
 	Size        uint64
 }
 
-func (s *FilesService) UploadFile(ctx context.Context, info FileInfo, fileContent io.Reader) (*FileHeader, error) {
-	extension := filepath.Ext(info.Name)
+func (s *FilesService) ListFilesHeader(ctx context.Context) ([]FileHeader, error) {
+	filesInfo, err := s.filesSystem.ListFilesInfo(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get list of files info: %w", err)
+	}
 
-	size, err := s.filesSystem.SaveFile(ctx, info.Name, fileContent)
+	filesHeader := make([]FileHeader, len(filesInfo))
+
+	for i := range filesInfo {
+		extension := filepath.Ext(filesInfo[i].Name)
+
+		filesHeader[i] = FileHeader{
+			Name:        filesInfo[i].Name,
+			ContentType: extension, // TODO: detect content type by extension.
+			Size:        filesInfo[i].Size,
+		}
+	}
+
+	return filesHeader, nil
+}
+
+func (s *FilesService) UploadFile(ctx context.Context, name string, fileContent io.Reader) (*FileHeader, error) {
+	extension := filepath.Ext(name)
+
+	size, err := s.filesSystem.SaveFile(ctx, name, fileContent)
 	if err != nil {
 		return nil, fmt.Errorf("save file in file system: %w", err)
 	}
 
 	h := FileHeader{
-		Name:        info.Name,
+		Name:        name,
 		ContentType: extension, // TODO: detect content type by extension.
 		Size:        size,
 	}
